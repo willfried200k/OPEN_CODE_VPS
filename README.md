@@ -138,8 +138,41 @@ opencode attach https://opencode.tondomaine.com
 | `OPENCODE_SERVER_PASSWORD` | — | Mot de passe du basic auth (**obligatoire** en production) |
 | `OPENCODE_VERSION` | `latest` | Tag de l'image de base `ghcr.io/anomalyco/opencode` |
 | `OPENCODE_DISABLE_AUTOUPDATE` | `true` | Désactive l'auto-update interne (voir plus bas) |
+| `GH_TOKEN` | — | PAT GitHub utilisé par `git` et `gh` (voir [Accès GitHub](#accès-github-commit-et-push)) |
+| `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL` | — | Identité des commits créés par l'agent |
+| `GIT_COMMITTER_NAME` / `GIT_COMMITTER_EMAIL` | — | Identité du committer |
 
 Les clés de fournisseurs (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, …) peuvent être ajoutées en variables d'environnement à la place de `make auth`.
+
+## Accès GitHub (commit et push)
+
+L'image configure un `credential.helper` **système** qui lit `GH_TOKEN` à chaque opération git, et installe `gh` (qui lit la même variable).
+
+1. Crée un **fine-grained token** GitHub → *Settings → Developer settings → Fine-grained tokens* :
+   - Repository access : les dépôts concernés uniquement ;
+   - `Contents` → **Read and write** ;
+   - `Pull requests` → Read and write (si l'agent doit ouvrir des PR) ;
+   - expiration courte (90 jours).
+2. Renseigne les variables dans Coolify :
+
+   ```
+   GH_TOKEN=github_pat_...
+   GIT_AUTHOR_NAME=willfried200k
+   GIT_AUTHOR_EMAIL=willfried200k@users.noreply.github.com
+   GIT_COMMITTER_NAME=willfried200k
+   GIT_COMMITTER_EMAIL=willfried200k@users.noreply.github.com
+   ```
+
+3. Redéploie, puis vérifie depuis le terminal du conteneur :
+
+   ```bash
+   git clone https://github.com/willfried200k/OPEN_CODE_VPS.git /workspace/test
+   cd /workspace/test && git commit --allow-empty -m test && git push
+   ```
+
+L'agent peut ensuite cloner, committer, pousser et ouvrir des PR (`gh pr create`) sans configuration supplémentaire.
+
+> Le token donne à l'agent un droit d'écriture sur les dépôts autorisés, et l'agent a un accès shell complet : limite le périmètre du token et fais-le tourner.
 
 ## Travailler avec tes projets
 
@@ -217,6 +250,8 @@ OPEN_CODE_VPS/
 | `Permission denied` sur un volume | Volume créé avec un autre propriétaire | `docker compose down` puis supprime le volume et redéploie |
 | Healthcheck en échec | Mot de passe absent dans la commande du healthcheck | Utilise la commande `curl -u …` ci-dessus ou désactive-le |
 | Build échoue sur `apk add` | Tag `OPENCODE_VERSION` inexistant | Reviens à `latest` |
+| `could not read Username` / `Authentication failed` | `GH_TOKEN` absent, expiré ou non redéployé | Vérifie la variable et redéploie le conteneur |
+| `gh: command not found` | Image pas reconstruite après la mise à jour du `Dockerfile` | Redéploie avec *Force rebuild* |
 
 ## Pipeline
 

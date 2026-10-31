@@ -11,8 +11,12 @@ RUN apk add --no-cache \
       ca-certificates \
       curl \
       git \
+      github-cli \
       openssh-client \
-    && git --version
+    && git --version \
+    && gh --version \
+    && git config --system credential.helper \
+       '!f() { echo "username=x-access-token"; echo "password=${GH_TOKEN}"; }; f'
 
 ENV HOME=/root
 ENV OPENCODE_DISABLE_AUTOUPDATE=true
