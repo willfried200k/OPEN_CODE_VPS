@@ -1,0 +1,9 @@
+.git
+.github
+.env
+.env.*
+backups
+workspace
+README.md
+docker-compose*.yml
+scripts
